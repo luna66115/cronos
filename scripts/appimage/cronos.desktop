@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Cronos
+GenericName=Crontab Manager
+Comment=A modern GUI crontab manager for Linux
+Exec=cronos
+Icon=cronos
+Terminal=false
+Categories=System;Utility;
+Keywords=cron;crontab;scheduler;task;
+StartupWMClass=cronos

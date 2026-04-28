@@ -1,0 +1,82 @@
+name: Release AppImage
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+jobs:
+  build-appimage:
+    name: Build & publish AppImage
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y \
+            libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 \
+            libxkbcommon-x11-0 libglib2.0-0 libdbus-1-3 \
+            fuse libfuse2 patchelf
+
+      - name: Install Python dependencies
+        run: pip install pyinstaller PyQt6 croniter
+
+      - name: Build AppImage
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: bash scripts/build_appimage.sh
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Rename AppImage
+        run: |
+          mv dist/Cronos-x86_64.AppImage \
+             dist/Cronos-${{ steps.version.outputs.VERSION }}-x86_64.AppImage
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Cronos ${{ steps.version.outputs.VERSION }}"
+          body: |
+            ## Cronos ${{ steps.version.outputs.VERSION }}
+
+            ### Installation
+            1. Download `Cronos-${{ steps.version.outputs.VERSION }}-x86_64.AppImage`
+            2. Ausführbar machen / Make executable:
+               ```bash
+               chmod +x Cronos-${{ steps.version.outputs.VERSION }}-x86_64.AppImage
+               ```
+            3. Starten / Run:
+               ```bash
+               ./Cronos-${{ steps.version.outputs.VERSION }}-x86_64.AppImage
+               ```
+
+            Keine Installation nötig. Works on any modern x86_64 Linux.
+
+            ### Requirements
+            - x86_64 Linux
+            - FUSE: `sudo apt install libfuse2` (Ubuntu/Debian)
+
+            ### Changes
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+          files: dist/Cronos-${{ steps.version.outputs.VERSION }}-x86_64.AppImage
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
